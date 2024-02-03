@@ -1,7 +1,6 @@
 # MazeCraft
 
-- A project about generating and solving maze algorithm
-- The code is very unstable
+This is a project on building a maze generator, as well as solving algorithm. The user interface is built in pygame in python. There are 5 generator and 3 solving algorithms, it is simple and fairly easy to play through. However, the code is quite unstable and vunerable to changes
 
 - Some of the simulation:
 <img width="603" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/f882f53c-a993-4560-9714-a466e0e2c18b">
