@@ -12,19 +12,29 @@ class Cell:
 		self.bias_x, self.bias_y = 50, 100
 		self.x, self.y = x, y
 		self.walls = {"right": True, "left": True, "top": True, "bottom": True}
-		self.path = False
 		self.fake_visited = False
+		self.generated = False
+		self.end, self.start = False, False
+		self.path = False
 
-	def draw(self):
+	def draw(self):			
 		x, y = self.x * self.TILE, self.TILE * self.y
 
 		x += self.bias_x
 		y += self.bias_y
 
-		if self.visited or self.fake_visited:
+		if self.visited or self.generated or self.fake_visited:
 			pygame.draw.rect(self.screen, pygame.Color("black"),
 											 (x, y, self.TILE, self.TILE))
-
+		if self.path:
+			pygame.draw.rect(self.screen, pygame.Color("yellow"),
+											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
+		if self.start:
+			pygame.draw.rect(self.screen, pygame.Color("green"),
+											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
+		elif self.end:
+			pygame.draw.rect(self.screen, pygame.Color("red"),
+											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
 		if self.walls["right"]:
 			pygame.draw.line(self.screen, pygame.Color("lightgreen"),
 											 (x + self.TILE, y), (x + self.TILE, y + self.TILE), 1)
@@ -38,13 +48,35 @@ class Cell:
 			pygame.draw.line(self.screen, pygame.Color("lightgreen"),
 											 (x + self.TILE, y + self.TILE), (x, y + self.TILE), 1)
 
+	def draw_1st(self):
+		x, y = self.x * self.TILE, self.TILE * self.y
+
+		x += self.bias_x
+		y += self.bias_y
+		draw_text(self.screen, "N", pygame.font.Font(None, 24), pygame.Color("White"), (110, 230-5))
+		draw_text(self.screen, "E", pygame.font.Font(None, 24), pygame.Color("White"), (230-5, 360))
+		draw_text(self.screen, "S", pygame.font.Font(None, 24), pygame.Color("White"), (360, 230-5))
+		draw_text(self.screen, "W", pygame.font.Font(None, 24), pygame.Color("White"), (230-5, 110))
+		if self.walls["right"]:
+			pygame.draw.line(self.screen, pygame.Color("lightblue"),
+											 (330, 140), (330, 340), 1)
+		if self.walls["left"]:
+			pygame.draw.line(self.screen, pygame.Color("lightblue"),
+											 (130, 140), (130, 340), 1)
+		if self.walls["top"]:
+			pygame.draw.line(self.screen, pygame.Color("lightblue"),
+											 (130, 140), (330, 140), 1)
+		if self.walls["bottom"]:
+			pygame.draw.line(self.screen, pygame.Color("lightblue"),
+											 (130, 340), (330, 340), 1)
+
 	def draw_current(self):
 		x, y = self.x * self.TILE, self.TILE * self.y
 
 		x += self.bias_x + self.TILE//(2)
 		y += self.bias_y + self.TILE//(2)
 
-		pygame.draw.circle(self.screen, pygame.Color("red"), (x, y), self.TILE//(2.5))
+		pygame.draw.circle(self.screen, pygame.Color("white"), (x, y), self.TILE//(2.5))
 
 	def check_cell(self, x, y, grid_cell):
 		find_index = lambda x, y: x + y * self.cols
@@ -72,72 +104,30 @@ class Cell:
 
 		return random.choice(neighbor) if neighbor else False
 
-	# def draw_path(self):
-	# 	if self.path:
-	# 		x, y = self.x * self.TILE, self.TILE * self.y
-
-	# 		x += self.bias_x + self.TILE//(2)
-	# 		y += self.bias_y + self.TILE//(2)
-	# 		if self.path >= 1020:
-	# 			self.path  %= 1020
-	# 		if self.path < 255:
-	# 			pygame.draw.circle(self.screen, (self.path, 0, 0), (x, y), self.TILE//(4))
-	# 		elif self.path < 510:
-	# 			pygame.draw.circle(self.screen, (255, self.path-255, 0), (x, y), self.TILE//(4))
-	# 		elif self.path < 1020:
-	# 			pygame.draw.circle(self.screen, (255, 255, self.path-510), (x, y), self.TILE//(4))
-
-	def check_next_neighbor(self, grid_cell, pre_cell, direction=random.choice(["up", "down", "left", "right"])):
+	def check_next_neighbor(self, grid_cell):
 		neighbor = []
 		top = self.check_cell(self.x, self.y - 1, grid_cell)
 		right = self.check_cell(self.x + 1, self.y, grid_cell)
 		bottom = self.check_cell(self.x, self.y + 1, grid_cell)
 		left = self.check_cell(self.x - 1, self.y, grid_cell)
 
-		if direction == "up":
-			if left and not self.walls["left"]:
-				neighbor.append(left)
-			if top and not self.walls["top"]:
-				neighbor.append(top)
-			if right and  not self.walls["right"]:
-				neighbor.append(right)
-			if bottom and not self.walls["bottom"]:
-				neighbor.append(bottom)
-		elif direction == "right":
-			if top and not self.walls["top"]:
-				neighbor.append(top)
-			if right and  not self.walls["right"]:
-				neighbor.append(right)
-			if bottom and not self.walls["bottom"]:
-				neighbor.append(bottom)
-			if left and not self.walls["left"]:
-				neighbor.append(left)
-		elif direction == "down":
-			if right and  not self.walls["right"]:
-				neighbor.append(right)
-			if bottom and not self.walls["bottom"]:
-				neighbor.append(bottom)
-			if left and not self.walls["left"]:
-				neighbor.append(left)
-			if top and not self.walls["top"]:
-				neighbor.append(top)
-
-		elif direction == "left":
-			if bottom and not self.walls["bottom"]:
-				neighbor.append(bottom)
-			if left and not self.walls["left"]:
-				neighbor.append(left)
-			if right and  not self.walls["right"]:
-				neighbor.append(right)
-			if top and not self.walls["top"]:
-				neighbor.append(top)
-
-
-		if len(neighbor) > 1 and pre_cell in neighbor:
-			neighbor.remove(pre_cell)
+		if left and not self.walls["left"]:
+			neighbor.append(left)
+		if top and not self.walls["top"]:
+			neighbor.append(top)
+		if right and  not self.walls["right"]:
+			neighbor.append(right)
+		if bottom and not self.walls["bottom"]:
+			neighbor.append(bottom)
 
 		return neighbor
 
+def draw_text(screen, text, font, color, position):
+  text_surface = font.render(text, True, color)
+  text_rect = text_surface.get_rect()
+  text_rect.left = position[1]
+  text_rect.centery = position[0]
+  screen.blit(text_surface, text_rect)
 
 def rm_walls(current, next):
 	dx = current.x - next.x
@@ -209,15 +199,16 @@ def Eller(grid_cell, rows, cols, count, set_cell):
 
 			if count > 0:
 				if random.randrange(1, 10) > 5:
+					# grid_cell[i].draw_current()
 					rm_walls(grid_cell[i], grid_cell[i - cols])
 					grid_cell[i].fake_visited, grid_cell[i - cols].fake_visited = True, True
 					cells.add(i)
 					cells.add(i - cols)
 				else:
 					cells.add(i)
-
 			ls.append(cells)
 			i += 1
+			
 		num = 0
 		for i in ls:
 			for j in i:
@@ -343,48 +334,45 @@ def RanKruskal(grid_cell, set_cell):
 
 	return set_cell
 
-def check_dir(grid_cell, current_cell, next_cell):
-		if next_cell:
-				c, n = grid_cell.index(current_cell), grid_cell.index(next_cell)
-				if c == n + 1:
-						return "right"
-				elif c == n - 1:
-						return "left"
-				elif c < n - 1:
-						return "up"
-				else:
-						return "down"
-		else:
-				return "right"
+def BFS(grid_cell, current_cell, queue, visited):
+	list_choice = current_cell.check_next_neighbor(grid_cell)
+	for i in list_choice:
+		if i not in visited and i not in queue:
+			queue.append(i)
+	
+	next_cell = queue.pop(0)
+	visited.append(next_cell)
+	return next_cell, queue, visited
 
-def RandomMouse(grid_cell, current_cell, previous_cell):
-		next_cell = random.choice(current_cell.check_next_neighbor(grid_cell, previous_cell))
-		return current_cell, next_cell
+def cal_cost(grid_cell, current_cell, end, cols):
+	idx = grid_cell.index(current_cell)
+	cell_pos = (idx//(cols), idx%(cols))
 
-def HandOnWall(grid_cell, current_cell, previous_cell):
+	return abs(end[0]-cell_pos[0]) + abs(end[1]-cell_pos[1])
+def Greedy(grid_cell, current_cell, priority_queue, visited, end, cols):
+		
+	list_choice = current_cell.check_next_neighbor(grid_cell)
+	for i in list_choice:
+		if i not in visited and i not in [i[0] for i in priority_queue]:
+			cost = cal_cost(grid_cell, current_cell, end, cols)
+			priority_queue.append((cost, i))
+			priority_queue = sorted(priority_queue, key=lambda x: x[0])
 
-		direction = check_dir(grid_cell, current_cell, previous_cell)
-		list_choice = current_cell.check_next_neighbor(grid_cell, previous_cell,  direction)
+	next_cell = priority_queue.pop(0)[1]
+	# print(cal_cost(grid_cell, next_cell, end, cols))
+	visited.append(next_cell)
 
+	# print([grid_cell.index(i) for i in list_choice])
+	# time.sleep(1)
+	return next_cell, priority_queue, visited
 
-		# print([grid_cell.index(i) for i in list_choice])
-		# time.sleep(1)
-		return current_cell, list_choice[0]
+def DFS(grid_cell, current_cell, stack, visited):
+	list_choice = current_cell.check_next_neighbor(grid_cell)
+	for i in list_choice:
+		if i not in visited and i not in stack:
+			stack.append(i)
 
-def Tremaux(grid_cell, current_cell, stack, previous_cell, visited):
-		list_choice = current_cell.check_next_neighbor(grid_cell, previous_cell)
-		choices = []
-		for i in list_choice:
-				if i  not in visited:
-						choices.append(i)
+	next_cell = stack.pop(-1)
+	visited.append(next_cell)
 
-		if choices:
-				next_cell = random.choice(choices)
-				visited.append(next_cell)
-				stack.append(next_cell)
-		else:
-				stack.pop()
-				next_cell = stack[-1]
-
-
-		return current_cell, next_cell, stack, visited
+	return next_cell, stack, visited
