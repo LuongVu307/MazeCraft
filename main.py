@@ -7,9 +7,9 @@ import csv
 
 import pygame
 from pygame.image import load
-from pygame.transform import scale
+from pygame.transform import scale, flip
 
-from algorithm import Cell, RanDFS, RanPrims, Eller, HuntKill, RanKruskal, BFS, Greedy, DFS, cal_cost
+from algorithm import Cell, RanDFS, RanPrims, Eller, RanKruskal, BFS, Greedy, DFS, cal_cost, BinaryTree
 
 
 pygame.init()
@@ -27,24 +27,35 @@ clock = pygame.time.Clock()
 
 DFS_img = load(join(path, "DFS.jpg"))
 Ellers_img = load(join(path, "Ellers.jpg"))
-HuntKill_img = load(join(path, "Huntkill.jpg"))
+Binary_img = load(join(path, "Binary.jpg"))
 Kruskal_img = load(join(path, "Kruskal.jpg"))
 Prims_img = load(join(path, "Prims.jpg"))
+arrow_img = load(join(path, "arrow.png"))
+arrow_rect = arrow_img.get_rect()
+# print(arrow_rect)
+
+tutorial0 = load(join(path, "tutorial0.jpg"))
+tutorial1 = load(join(path, "tutorial1.jpg"))
+tutorial2 = load(join(path, "tutorial2.jpg"))
 
 
-columns = ["Generator", "Complexity", "Time Generate", "Steps Generate", "Solver", "Time Solve", "Steps Solve", "Path"]
+columns = ["Generator", "Complexity", "Time Generate", "Steps Generate", "Solver", "Time Solve", "Steps Solve", "Path", "Distance"]
 data = pd.DataFrame(columns = columns)
 
 def draw_menu(page):
 
   screen.fill(pygame.Color("tan"))
 
-  button = pygame.Rect(0, 0, 20, 20)
+  button = pygame.Rect(0, 0, 35, 25)
+
   if page == 1:
     button.center = (GUI_WIDTH - 30, GUI_HEIGHT // 2)
+    arr_img = arrow_img
   elif page == 2:
     button.center = (30, GUI_HEIGHT // 2)
-  pygame.draw.rect(screen, pygame.Color("black"), button)
+    arr_img = flip(arrow_img, True, False)
+  # pygame.draw.rect(screen, pygame.Color("black"), button)
+  screen.blit(scale(arr_img, (35, 35)), (button.topleft[0], button.topleft[1]-5))
 
   font = pygame.font.Font(None, 54)
   title_text = font.render("Maze Craft", True, pygame.Color("dark green"))
@@ -55,7 +66,7 @@ def draw_menu(page):
   screen.blit(title_text, (GUI_WIDTH // 2 - title_text.get_width() // 2, 200))
 
   option1 = ["DFS Maze", "Kruskal's Maze", "Prims Maze"]
-  option2 = ["Eller Maze", "HuntKill Maze", "Saved Maze"]
+  option2 = ["Eller Maze", "Binary Maze", "Saved Maze"]
   option_width = 150
 
   options = option1 if page == 1 else option2
@@ -71,8 +82,8 @@ def draw_menu(page):
       screen.blit(scale(Prims_img, (150, 150)), (option_width-75, GUI_HEIGHT // 2 + 25))
     elif option == "Eller Maze":
       screen.blit(scale(Ellers_img, (150, 150)), (option_width-75, GUI_HEIGHT // 2 + 25))
-    elif option == "HuntKill Maze":
-      screen.blit(scale(HuntKill_img, (150, 150)), (option_width-75, GUI_HEIGHT // 2 + 25))
+    elif option == "Binary Maze":
+      screen.blit(scale(Binary_img, (150, 150)), (option_width-75, GUI_HEIGHT // 2 + 25))
     else:
       choice = pygame.Rect(0, 0, 150, 150)
       choice.center = (option_width, GUI_HEIGHT // 2 + 100)
@@ -124,8 +135,31 @@ def handle_movement(keys, grid_cell, current_cell, rows, cols, key_pressed, step
 
   return current_cell, key_pressed, steps
 
+def draw_intro(page):
+  screen.fill(pygame.Color("lightgrey"))
 
-def main():
+  button = pygame.Rect(0, 0, 35, 25)
+
+  if page == 1:
+    button.center = (GUI_WIDTH - 30, GUI_HEIGHT // 2)
+    arr_img = arrow_img
+    screen.blit(scale(arr_img, (35, 35)), (button.topleft[0], button.topleft[1]-5))
+    screen.blit(scale(tutorial0, (600, 375)), (100,  60))
+  elif page == 2:
+    button.center = (30, GUI_HEIGHT // 2)
+    arr_img = flip(arrow_img, True, False)
+    screen.blit(scale(arr_img, (35, 35)), (button.topleft[0], button.topleft[1]-5))
+    arr_img_ = arrow_img
+    button.center = (GUI_WIDTH - 30, GUI_HEIGHT // 2)
+    screen.blit(scale(arr_img_, (35, 35)), (button.topleft[0], button.topleft[1]-5))
+    screen.blit(scale(tutorial1, (600, 375)), (100,  60))
+  elif page == 3:
+    button.center = (30, GUI_HEIGHT // 2)
+    arr_img = flip(arrow_img, True, False)
+    screen.blit(scale(arr_img, (35, 35)), (button.topleft[0], button.topleft[1]-5))
+    screen.blit(scale(tutorial2, (600, 375)), (100,  60))
+  
+def create_maze(autotrain=False, epochs=0, saving_maze=False, saving_data=False, range_random=(5, 40)):
   FPS = 60
   TILE = 20
   rows, cols = HEIGHT // TILE, WIDTH // TILE
@@ -135,7 +169,15 @@ def main():
   maze_type = None
   size = "Medium"
   elapse = 0
+  all_counter = epochs
+  if autotrain:
+    saving_data = True
+  all_counter = 0
   while running:
+    if autotrain:
+      if all_counter >= epochs:
+        data.to_csv("data.csv", mode="a", header=False, index=False)
+        sys.exit()
     for event in pygame.event.get():
       if event.type == pygame.QUIT:
         running = False
@@ -147,35 +189,28 @@ def main():
           # print(x, y)
           if 690 <= x <= 765 and 450 <= y <= 475:
             running = False
-            data.to_csv("data.csv", mode="a", header=False, index=False)
+            if saving_data:
+              data.to_csv("data.csv", mode="a", header=False, index=False)
             # print(data)
           match state:
             case "menu":
               if 340 <= x <= 460 and 100 <= y <= 125:
                 if size == "Small":
                   size = "Moderate"
-                  TILE = 25
-                  rows, cols = HEIGHT // TILE, WIDTH // TILE
                 elif size == "Moderate":
                   size = "Medium"
-                  TILE = 15
-                  rows, cols = HEIGHT // TILE, WIDTH // TILE
                 elif size == "Medium":
                   size = "Large"
-                  TILE = 12
-                  rows, cols = HEIGHT // TILE, WIDTH // TILE
                 elif size == "Large":
                   size = "Enormous"
-                  TILE = 10
-                  rows, cols = HEIGHT // TILE, WIDTH // TILE
                 else:
                   size = "Small"
-                  TILE = 35
-                  rows, cols = HEIGHT // TILE, WIDTH // TILE
+                # print(rows*cols)
               if 325 <= x <= 475 and 150 <= y <= 175:
                 state = "Introduction"
+                intro_page = 1
               if page == 1:
-                if 760 <= x <= 780 and 240 <= y <= 260:
+                if 753 <= x <= 787 and 238 <= y <= 263:
                   page = 2
                 elif 75 <= x <= 225 and 275 <= y <= 425:
                   state = "prepare"
@@ -187,14 +222,14 @@ def main():
                   state = "prepare"
                   maze_type = "Prims"
               elif page == 2:
-                if 20 <= x <= 40 and 240 <= y <= 260:
+                if 11 <= x <= 48 and 238 <= y <= 263:
                   page = 1
                 elif 75 <= x <= 225 and 275 <= y <= 425:
                   state = "prepare"
                   maze_type = "Eller"
                 elif 325 <= x <= 475 and 275 <= y <= 425:
                   state = "prepare"
-                  maze_type = "HuntKill"
+                  maze_type = "Binary"
                 elif 575 <= x <= 725 and 275 <= y <= 425:
                   state = "prepare"
                   maze_type = "Saved"
@@ -253,6 +288,19 @@ def main():
                 start_time = pygame.time.get_ticks()
                 path = 1
                 ls = [current_cell]
+            case "Introduction":
+              if intro_page == 1:
+                if 753 <= x <= 787 and 238 <= y <= 263:
+                  intro_page = 2
+              elif intro_page == 2:
+                if 753 <= x <= 787 and 238 <= y <= 263:
+                  intro_page = 3
+                elif 11 <= x <= 48 and 238 <= y <= 263:
+                  intro_page = 1
+              elif intro_page == 3:
+                if 11 <= x <= 48 and 238 <= y <= 263:
+                  intro_page = 2
+                
           if state not in ["menu", "prepare", "Introduction", "3rd-V"]:
             if 350 <= x <= 470 and 450 <= y <= 475:
               if pause == "Continue":
@@ -278,7 +326,30 @@ def main():
     match state:
       case "menu":
         draw_menu(page)
+        if autotrain:
+          #AUTO TRAIN---------------------------------------------------------------
+          maze_type = random.choice(["DFS", "Kruskal", "Prims", "Eller", "Binary"])
+          speed = "Training"
+          FPS = 100
+          countering = 1
+          size = "Random"
+          state = "prepare"
+          #---------------------------------------------------------------------
       case "prepare":
+        if size == "Moderate":
+          TILE = random.randint(23, 27)
+        elif size == "Medium":
+          TILE = random.randint(15, 19)
+        elif size == "Large":
+          TILE = random.randint(11, 13)
+        elif size == "Enormous":
+          TILE = random.randint(8, 10)
+        elif size == "Small":
+          TILE = random.randint(32, 38)
+        elif size == "Random":
+          TILE = random.randint(range_random[0], range_random[1])
+          print(TILE)
+        rows, cols = HEIGHT // TILE, WIDTH // TILE
         grid_cell = [
             Cell(col, row, TILE, screen, cols, rows) for row in range(rows)
             for col in range(cols)
@@ -287,7 +358,10 @@ def main():
         start_time = pygame.time.get_ticks()
         steps = 0
         pause = "Pause"
-        speed = "Normal"
+          
+
+        if not autotrain:
+          speed = "Normal"
         match maze_type:
           case "DFS":
             current_cell = grid_cell[0]
@@ -296,19 +370,38 @@ def main():
             current_cell = grid_cell[0]
             set_cell = [set([i]) for i in range(len(grid_cell))]
           case "Prims":
-            current_cell = grid_cell[rows * cols // 2 ]
+            current_cell = random.choice(grid_cell)
             current_cell.visited = True
     
           case "Eller":
             current_cell = grid_cell[0]
-            count = 0
+            for i in range(len(grid_cell)):
+              if i%cols != 0:
+                grid_cell[i].walls["left"] = False
+              if i%cols != cols-1:
+                grid_cell[i].walls["right"] = False
+              if i//cols != 0:
+                grid_cell[i].walls["top"] = False
+              if i//cols != rows-1:
+                grid_cell[i].walls["bottom"] = False
             set_cell = []
-          case "HuntKill":
+          case "Binary":
+            for i in range(len(grid_cell)):
+              if i%cols != 0:
+                grid_cell[i].walls["left"] = False
+              if i%cols != cols-1:
+                grid_cell[i].walls["right"] = False
+              if i//cols != 0:
+                grid_cell[i].walls["top"] = False
+              if i//cols != rows-1:
+                grid_cell[i].walls["bottom"] = False
             current_cell = grid_cell[0]
           case "Saved":
             rows, cols = files[1], files[2]
             maze_type = files[0]
-            TILE, start, end, generate_time, generate_steps = files[2], files[3], files[4], files[5], files[6]
+            TILE, generate_time, generate_steps = files[3], files[4], files[5]
+            end = random.randint(0, len(grid_cell)-1)
+            start = random.randint(0, len(grid_cell)-1)
             grid_cell = [
             Cell(col, row, TILE, screen, cols, rows) for row in range(rows)
             for col in range(cols)
@@ -317,7 +410,7 @@ def main():
             grid_cell[end].end = True
             # print(files)
             # print([files[i] for i in range(len(files))])
-            for i, j in zip(range(len(grid_cell)), range(8, len(files), 4)):
+            for i, j in zip(range(len(grid_cell)), range(6, len(files), 4)):
               grid_cell[i].walls["right"] = files[j]
               grid_cell[i].walls["left"] = files[j+1]
               grid_cell[i].walls["top"] = files[j+2]
@@ -337,13 +430,14 @@ def main():
                 end = random.randint(0, len(grid_cell)-1)
                 start = random.randint(0, len(grid_cell)-1)
                 generate_time, generate_steps = pygame.time.get_ticks() - start_time, steps
-                maze = [[maze_type, rows, cols, TILE, start, end, generate_time, generate_steps]]
-                for i in grid_cell:
-                  for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
-                    maze[0].append(j)
-                with open('mazes.csv', 'a', newline='') as file:
-                  csv_writer = csv.writer(file)
-                  csv_writer.writerows(maze)
+                if saving_maze:
+                  maze = [[maze_type, rows, cols, TILE, generate_time, generate_steps]]
+                  for i in grid_cell:
+                    for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
+                      maze[0].append(j)
+                  with open('mazes.csv', 'a', newline='') as file:
+                    csv_writer = csv.writer(file)
+                    csv_writer.writerows(maze)
                 grid_cell[end].end = True
                 grid_cell[start].start = True
                 for cell in range(len(grid_cell)):
@@ -355,13 +449,14 @@ def main():
                 end = random.randint(0, len(grid_cell)-1)
                 start = random.randint(0, len(grid_cell)-1)
                 generate_time, generate_steps = pygame.time.get_ticks() - start_time, steps
-                maze = [[maze_type, rows, cols, TILE, start, end, generate_time, generate_steps]]
-                for i in grid_cell:
-                  for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
-                    maze[0].append(j)
-                with open('mazes.csv', 'a', newline='') as file:
-                  csv_writer = csv.writer(file)
-                  csv_writer.writerows(maze)
+                if saving_maze:
+                  maze = [[maze_type, rows, cols, TILE, generate_time, generate_steps]]
+                  for i in grid_cell:
+                    for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
+                      maze[0].append(j)
+                  with open('mazes.csv', 'a', newline='') as file:
+                    csv_writer = csv.writer(file)
+                    csv_writer.writerows(maze)
                 grid_cell[end].end = True
                 grid_cell[start].start = True
                 for cell in range(len(grid_cell)):
@@ -375,52 +470,54 @@ def main():
                 generate_time, generate_steps = pygame.time.get_ticks() - start_time, steps
                 end = random.randint(0, len(grid_cell)-1)
                 start = random.randint(0, len(grid_cell)-1)
-                maze = [[maze_type, rows, cols, TILE, start, end, generate_time, generate_steps]]
                 [cell.draw() for cell in grid_cell]
-                for i in grid_cell:
-                  for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
-                    maze[0].append(j)
-                with open('mazes.csv', 'a', newline='') as file:
-                  csv_writer = csv.writer(file)
-                  csv_writer.writerows(maze)
+                if saving_maze:
+                  maze = [[maze_type, rows, cols, TILE, generate_time, generate_steps]]
+                  for i in grid_cell:
+                    for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
+                      maze[0].append(j)
+                  with open('mazes.csv', 'a', newline='') as file:
+                    csv_writer = csv.writer(file)
+                    csv_writer.writerows(maze)
 
                 grid_cell[end].end = True
                 grid_cell[start].start = True
                 for cell in range(len(grid_cell)):
                   grid_cell[cell].generated=True
             case "Eller":
-              set_cell = Eller(grid_cell, rows, cols, count, set_cell)
-              count += 1
-              if not set_cell:
+              current_cell, set_cell = Eller(grid_cell, rows, cols, set_cell, current_cell)
+              if grid_cell.index(current_cell) == len(grid_cell)-1:
                 state = "end maze"
                 end = random.randint(0, len(grid_cell)-1)
                 start = random.randint(0, len(grid_cell)-1)
                 generate_time, generate_steps = pygame.time.get_ticks() - start_time, steps
-                maze = [[maze_type, rows, cols, TILE, start, end, generate_time, generate_steps]]
-                for i in grid_cell:
-                  for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
-                    maze[0].append(j)
-                with open('mazes.csv', 'a', newline='') as file:
-                  csv_writer = csv.writer(file)
-                  csv_writer.writerows(maze)
+                if saving_maze:
+                  maze = [[maze_type, rows, cols, TILE, generate_time, generate_steps]]
+                  for i in grid_cell:
+                    for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
+                      maze[0].append(j)
+                  with open('mazes.csv', 'a', newline='') as file:
+                    csv_writer = csv.writer(file)
+                    csv_writer.writerows(maze)
                 grid_cell[end].end = True
                 grid_cell[start].start = True
                 for cell in range(len(grid_cell)):
                   grid_cell[cell].generated=True
-            case "HuntKill":
-              current_cell = HuntKill(current_cell, grid_cell)
-              if not current_cell:
+            case "Binary":
+              current_cell = BinaryTree(current_cell, grid_cell, cols)
+              if grid_cell.index(current_cell) == len(grid_cell)-1:
                 state = "end maze"
                 end = random.randint(0, len(grid_cell)-1)
                 start = random.randint(0, len(grid_cell)-1)
                 generate_time, generate_steps = pygame.time.get_ticks() - start_time, steps
-                maze = [[maze_type, rows, cols, TILE, start, end, generate_time, generate_steps]]
-                for i in grid_cell:
-                  for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
-                    maze[0].append(j)
-                with open('mazes.csv', 'a', newline='') as file:
-                  csv_writer = csv.writer(file)
-                  csv_writer.writerows(maze)
+                if saving_maze:
+                  maze = [[maze_type, rows, cols, TILE, generate_time, generate_steps]]
+                  for i in grid_cell:
+                    for j in (i.walls["right"], i.walls["left"], i.walls["top"], i.walls["bottom"]):
+                      maze[0].append(j)
+                  with open('mazes.csv', 'a', newline='') as file:
+                    csv_writer = csv.writer(file)
+                    csv_writer.writerows(maze)
                 grid_cell[end].end = True
                 grid_cell[start].start = True
                 for cell in range(len(grid_cell)):
@@ -431,6 +528,8 @@ def main():
         draw_text(screen, f"STEPS: {steps}", pygame.font.Font(None, 24),
                     pygame.Color("Red"), (70, 30))
       case "end maze":
+        for i in range(len(grid_cell)):
+                  grid_cell[i].gone_through=False
         draw_text(screen,
                     f"TIME: {(generate_time) / 1000}",
                     pygame.font.Font(None, 24), pygame.Color("Red"), (40, 30))
@@ -450,6 +549,43 @@ def main():
           text_rect = text_surface.get_rect(center=button_rect.center)
           pygame.draw.rect(screen, (101, 67, 33), button_rect)
           screen.blit(text_surface, text_rect)
+        
+        if autotrain:
+          #AUTO TRAIN -----------------------
+          state = "solve maze"
+          # print(countering)
+          # countering = random.randint(1, 3)
+          # print(start, end)
+          if countering == 1:
+            solver = "BFS"
+            current_cell = grid_cell[start]
+            steps = 0
+            start_time = pygame.time.get_ticks()
+            queue = [current_cell]
+            visited = []
+            for i in range(len(grid_cell)):
+              grid_cell[i].visited = False
+
+          elif countering == 2:
+            solver = "Greedy"
+            current_cell = grid_cell[start]
+            steps = 0
+            start_time = pygame.time.get_ticks()
+            priority_queue, visited = [(0, current_cell)], []
+            for i in range(len(grid_cell)):
+              grid_cell[i].visited = False
+          elif countering == 3:
+            solver = "DFS"
+            current_cell = grid_cell[start]
+            steps = 0
+            start_time = pygame.time.get_ticks()
+            for i in range(len(grid_cell)):
+              grid_cell[i].visited = False
+            stack, visited = [], [current_cell]
+          else:
+            state = "menu"
+            all_counter += 1
+        # ---------------------------------------
       case "solve maze":
         draw_text(screen,
                     f"TIME: {(generate_time) / 1000}",
@@ -464,29 +600,38 @@ def main():
             case "BFS":
               if grid_cell.index(current_cell) != end:
                 current_cell, queue, visited = BFS(grid_cell, current_cell, queue, visited)
+                current_cell.gone_through = True
               else:
                 state = "backtrack"
                 path = 0
                 solve_time = pygame.time.get_ticks() - start_time
                 solve_steps = steps 
+                # for i in range(len(grid_cell)):
+                #   grid_cell[i].gone_through=False
 
             case "Greedy":
               if grid_cell.index(current_cell) != end:
                 current_cell, priority_queue, visited = Greedy(grid_cell, current_cell, priority_queue, visited, (end//cols, end%cols), cols)
+                current_cell.gone_through = True
               else:
                 state = "backtrack"
                 path = 0
                 solve_time = pygame.time.get_ticks() - start_time
                 solve_steps = steps
+                # for i in range(len(grid_cell)):
+                #   grid_cell[i].gone_through=False
 
             case "DFS":
               if grid_cell.index(current_cell) != end:
                 current_cell, stack, visited = DFS(grid_cell, current_cell, stack, visited)
+                current_cell.gone_through = True
               else:
                 state = "backtrack"
                 path = 0
                 solve_time = pygame.time.get_ticks() - start_time
                 solve_steps = steps
+                # for i in range(len(grid_cell)):
+                #   grid_cell[i].gone_through=False
         
           now = pygame.time.get_ticks()
         current_cell.draw_current()
@@ -507,6 +652,11 @@ def main():
         draw_text(screen, f"STEPS: {solve_steps}", pygame.font.Font(None, 24),
                   pygame.Color("green"), (70, 150))
         [cells.draw() for cells in grid_cell]
+        #AUTO TRAIN ---------
+        if autotrain:
+          countering += 1
+          state = "end maze"
+        #------------------
       case "Introduction":
         screen.fill(pygame.Color("tan"))
 
@@ -514,14 +664,7 @@ def main():
         title_text = font.render("Maze Craft", True, pygame.Color("dark green"))
         screen.blit(title_text, (GUI_WIDTH // 2 - title_text.get_width() // 2, 50))
 
-        for count, i in enumerate(["MazeCraft is a versatile software tool that excels as both a maze solver",
-                  "and generator. As a solver, it swiftly navigates through mazes using algorithms,",
-                  "providing optimal solutions with real-time visualizations. On the creation side, " ,
-                  "MazeCraft lets users generate mazes, adjusting algorithms or size and for various",
-                  "applications. With an intuitive interface and broad versatility, MazeCraft is your ", 
-                  "all-in-one solution for maze-related challenges from entertainment to education and", 
-                  "problem-solving."]):
-          draw_text(screen,i,pygame.font.Font(None, 24), pygame.Color("Black"), (100+40*(count+1), 30))
+        draw_intro(intro_page)
       case "3rd-V":
         solver = "3rd-V"
         keys = pygame.key.get_pressed()
@@ -553,8 +696,6 @@ def main():
         if grid_cell.index(current_cell) == end:
           solve_time = pygame.time.get_ticks() - start_time
           solve_steps = steps
-          new_data = {"Generator" : maze_type, "Complexity" : size, "Time Generate" : generate_time/1000, "Steps Generate" : generate_steps, "Solver" : solver, "Time Solve" : solve_time/1000, "Steps Solve" : solve_steps, "Path" : path}
-          data.loc[len(data)] = new_data
           state = "done solve"
       case "1st-V":
         solver = "1st-V"
@@ -589,12 +730,15 @@ def main():
         if grid_cell.index(current_cell) == len(grid_cell)-1:
           solve_time = pygame.time.get_ticks() - start_time
           solve_steps = steps
-          new_data = {"Generator" : maze_type, "Complexity" : size, "Time Generate" : generate_time/1000, "Steps Generate" : generate_steps, "Solver" : solver, "Time Solve" : solve_time/1000, "Steps Solve" : solve_steps, "path" : path}
-          data.loc[len(data)] = new_data
-          state = "done solve"
+          if saving_data:
+            new_data = {"Generator" : maze_type, "Complexity" : size, "Time Generate" : generate_time/1000, "Steps Generate" : generate_steps, "Solver" : solver, "Time Solve" : solve_time/1000, "Steps Solve" : solve_steps, "path" : path}
+            data.loc[len(data)] = new_data
+            state = "done solve"
       case "backtrack":
         if grid_cell.index(current_cell) != start:
           choices = []
+          # print(start, end, grid_cell.index(current_cell))
+          # raise Exception
           for i in current_cell.check_next_neighbor(grid_cell):
             if i in visited:
               choices.append((visited.index(i), i))
@@ -604,10 +748,9 @@ def main():
           [cells.draw() for cells in grid_cell]
         else:
           state = "done solve"
-          new_data = {"Generator" : maze_type, "Complexity" : size, "Time Generate" : generate_time/1000, "Steps Generate" : generate_steps, "Solver" : solver, "Time Solve" : solve_time/1000, "Steps Solve" : solve_steps, "Path" : path}
-          data.loc[len(data)] = new_data
-          
-
+          if saving_data:
+            new_data = {"Generator" : maze_type, "Complexity" : cols*rows, "Time Generate" : generate_time/1000, "Steps Generate" : generate_steps, "Solver" : solver, "Time Solve" : solve_time/1000, "Steps Solve" : solve_steps, "Path" : path, "Distance" : cal_cost(grid_cell, grid_cell[start], (end//cols, end%cols), cols)}
+            data.loc[len(data)] = new_data
 
     if state not in ["menu", "prepare"]:
       button_text = "Back"
@@ -631,7 +774,7 @@ def main():
       button_text = pause
       if pause == "Continue":
         elapse = pygame.time.get_ticks()-now
-        print(elapse)
+        # print(elapse)
       font = pygame.font.Font(None, 36)
       text_surface = font.render(button_text, True, pygame.Color("White"))
       button_rect = pygame.Rect(350, GUI_HEIGHT-50, 120, 25)
@@ -653,7 +796,7 @@ def main():
           FPS = 3
         elif speed == "Normal":
           FPS = 10
-        else:
+        elif speed == "Fast":
           FPS = 60
     
     if state == "menu":
@@ -685,6 +828,10 @@ def main():
 
     clock.tick(FPS)
 
+
+def main():
+  # create_maze(autotrain=True, epochs=200, range_random=(6, 15), saving_maze=True)
+  create_maze()
 
 if __name__ == "__main__":
   main()
