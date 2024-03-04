@@ -16,6 +16,7 @@ class Cell:
 		self.generated = False
 		self.end, self.start = False, False
 		self.path = False
+		self.gone_through = False
 
 	def draw(self):			
 		x, y = self.x * self.TILE, self.TILE * self.y
@@ -26,26 +27,29 @@ class Cell:
 		if self.visited or self.generated or self.fake_visited:
 			pygame.draw.rect(self.screen, pygame.Color("black"),
 											 (x, y, self.TILE, self.TILE))
+		if self.gone_through:
+			pygame.draw.rect(self.screen, pygame.Color((218, 222, 115)),
+											 (x, y, self.TILE, self.TILE))
 		if self.path:
-			pygame.draw.rect(self.screen, pygame.Color("yellow"),
-											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
+			pygame.draw.rect(self.screen, pygame.Color((199, 196, 0)),
+											 (x, y, self.TILE, self.TILE))
 		if self.start:
 			pygame.draw.rect(self.screen, pygame.Color("green"),
-											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
+											(x, y, self.TILE, self.TILE))
 		elif self.end:
 			pygame.draw.rect(self.screen, pygame.Color("red"),
-											 (x+self.TILE/10, y+self.TILE/10, self.TILE-self.TILE/10, self.TILE-self.TILE/10))
+											(x, y, self.TILE, self.TILE))
 		if self.walls["right"]:
-			pygame.draw.line(self.screen, pygame.Color("lightgreen"),
+			pygame.draw.line(self.screen, pygame.Color("white"),
 											 (x + self.TILE, y), (x + self.TILE, y + self.TILE), 1)
 		if self.walls["left"]:
-			pygame.draw.line(self.screen, pygame.Color("lightgreen"),
+			pygame.draw.line(self.screen, pygame.Color("white"),
 											 (x, y + self.TILE), (x, y), 1)
 		if self.walls["top"]:
-			pygame.draw.line(self.screen, pygame.Color("lightgreen"), (x, y),
+			pygame.draw.line(self.screen, pygame.Color("white"), (x, y),
 											 (x + self.TILE, y), 1)
 		if self.walls["bottom"]:
-			pygame.draw.line(self.screen, pygame.Color("lightgreen"),
+			pygame.draw.line(self.screen, pygame.Color("white"),
 											 (x + self.TILE, y + self.TILE), (x, y + self.TILE), 1)
 
 	def draw_1st(self):
@@ -119,7 +123,8 @@ class Cell:
 			neighbor.append(right)
 		if bottom and not self.walls["bottom"]:
 			neighbor.append(bottom)
-
+		
+		random.shuffle(neighbor)
 		return neighbor
 
 def draw_text(screen, text, font, color, position):
@@ -146,6 +151,24 @@ def rm_walls(current, next):
 	elif dy == -1:
 		current.walls["bottom"] = False
 		next.walls["top"] = False
+
+def create_walls(current, next):
+	dx = current.x - next.x
+	if dx == 1:
+		current.walls["left"] = True
+		next.walls["right"] = True
+	elif dx == -1:
+		current.walls["right"] = True
+		next.walls["left"] = True
+
+	dy = current.y - next.y
+
+	if dy == 1:
+		current.walls["top"] = True
+		next.walls["bottom"] = True
+	elif dy == -1:
+		current.walls["bottom"] = True
+		next.walls["top"] = True
 
 def RanDFS(current_cell, stack, grid_cell):
 	current_cell.visited = True
@@ -182,129 +205,148 @@ def RanPrims(grid_cell):
 
 	return grid_cell
 
-def Eller(grid_cell, rows, cols, count, set_cell):
-	if cols * count < len(grid_cell):
+def conv_cord(grid_cell, cols, current_cell):
+	idx = grid_cell.index(current_cell)
 
-		i = cols * count
-		ls = []
-		while i < cols * (count + 1) - 1:
-			cells = set()
-			if random.randint(1, 10) > 5:
-				rm_walls(grid_cell[i], grid_cell[i + 1])
-				grid_cell[i].fake_visited, grid_cell[i + 1].fake_visited = True, True
-				cells.add(i)
-				cells.add(i + 1)
-			else:
-				cells.add(i)
-
-			if count > 0:
-				if random.randrange(1, 10) > 5:
-					# grid_cell[i].draw_current()
-					rm_walls(grid_cell[i], grid_cell[i - cols])
-					grid_cell[i].fake_visited, grid_cell[i - cols].fake_visited = True, True
-					cells.add(i)
-					cells.add(i - cols)
-				else:
-					cells.add(i)
-			ls.append(cells)
-			i += 1
-			
-		num = 0
-		for i in ls:
-			for j in i:
-				num += 1
-		if num != cols * (count + 1):
-			ls.append(set([cols * (count + 1) - 1]))
-
-		merged_sets = []
-
-		for set1 in set_cell:
-			merged = False
-
-			for merged_set in merged_sets:
-				if any(element in merged_set for element in set1):
-					merged_set.update(set1)
-					merged = True
-					break
-
-			if not merged:
-				merged_sets.append(set1.copy())
-
-		for set2 in ls:
-			merged = False
-
-			for merged_set in merged_sets:
-				if any(element in merged_set for element in set2):
-					merged_set.update(set2)
-					merged = True
-					break
-
-			if not merged:
-				merged_sets.append(set2.copy())
-
-		return merged_sets
-
-	else:
-		ls = set_cell.copy()
-		while True:
-			num_set = random.randint(0, len(ls) - 1)
-			set_chosen = ls[num_set]
-
-			num_chosen = random.choice(list(set_chosen))
-			cell_chosen = grid_cell[num_chosen]
-
-			next_cell = cell_chosen.check_neighbor(grid_cell)
-			if next_cell and grid_cell.index(next_cell) not in set_chosen:
-				rm_walls(cell_chosen, next_cell)
-				cell_chosen.fake_visited, next_cell.fake_visited = True, True
-				next_cell.draw_current()
-				set_chosen.add(grid_cell.index(next_cell))
-				break
-
-		merged_sets = []
-
-		for new_set in ls:
-			sets_to_merge = []
-
-			for existing_set in merged_sets:
-				if any(element in existing_set for element in new_set):
-					sets_to_merge.append(existing_set)
-
-			if sets_to_merge:
-				merged_set = set().union(new_set, *sets_to_merge)
-				merged_sets = [s for s in merged_sets if s not in sets_to_merge]
-				merged_sets.append(merged_set)
-			else:
-				merged_sets.append(new_set.copy())
-
-		if len(merged_sets) == 1:
+	return idx//cols, idx%cols
+def conv_idx(cols, row, col):
+	return row*cols + col
+def check_set(set_cell, first, sec):
+	for i in set_cell:
+		if first in i:
+			if sec not in i:
+				return True
 			return False
-		return merged_sets
+		elif sec in i:
+			if first not in i:
+				return True
+			return False
+	return True
+def list_merger(list_of_sets):
+    merged_sets = []
+    
+    while list_of_sets:
+        current_set = list_of_sets.pop(0)
+        merged_set = {element for element in current_set}
+        
+        i = 0
+        while i < len(list_of_sets):
+            if any(element in merged_set for element in list_of_sets[i]):
+                merged_set.update(list_of_sets.pop(i))
+                i = 0  # Restart the loop after merging
+            else:
+                i += 1
+        
+        merged_sets.append(merged_set)
+    
+    return merged_sets
 
-def HuntKill(current_cell, grid_cell):
-	current_cell.visited = True
-
+def Eller(grid_cell, rows, cols, set_cell, current_cell):
+	# print(grid_cell.index(current_cell))
+	#COLS: NUMBER OF COLUMNS
+	#ROWS: NUMBER OF ROWS
 	current_cell.draw_current()
-
-	next_cell = current_cell.check_neighbor(grid_cell)
-	count = 0
-	if next_cell:
-		next_cell.visited = True
-		rm_walls(current_cell, next_cell)
-		current_cell = next_cell
+	current_cell.visited = True
+	row, col = conv_cord(grid_cell, cols, current_cell)
+	current_cell = grid_cell.index(current_cell)
+	if col+1 == cols and row+1 != rows:
+		row_set = set([current_cell-i for i in range(cols)])
+		matching_sets = [s for s in set_cell if any(cell in s for cell in row_set)]
+		chosen_cells = []
+		# print("MATCHING", matching_sets)
+		for s in matching_sets:
+			temp_s = []
+			for i in s:
+				if i in row_set:
+					temp_s.append(i)
+			# print(temp_s)
+			for i in random.sample(temp_s, k=random.randint(0, len(temp_s)-1)):
+				chosen_cells.append(i)
+		# print("CHOSE", chosen_cells)
+		for cell in row_set:
+			row, col = conv_cord(grid_cell, cols, grid_cell[cell])
+			next_cell = conv_idx(cols, row+1, col)
+			if cell in chosen_cells:
+				# print(cell, chosen_cells)
+				grid_cell[next_cell].visited = True
+				create_walls(grid_cell[cell], grid_cell[next_cell])
+				add_cur, add_nex = False, False
+				for i in set_cell:
+					if cell in i:
+						add_cur = True
+					if add_nex in i:
+						add_nex = True
+				if not add_nex:
+					set_cell.append(set([next_cell]))
+				if not add_cur:
+					set_cell.append(set([cell]))
+			else:
+				for i in range(len(set_cell)):
+					if cell in set_cell[i]:
+						set_cell[i].add(next_cell)
+						done = True
+						break
+		# print("SET CE::", set_cell)
 	else:
-		for i in range(len(grid_cell)):
-			#grid_cell[i].draw_current()
-			if grid_cell[i].visited is True:
-				count += 1
-				if grid_cell[i].check_neighbor(grid_cell):
-					current_cell = grid_cell[i]
-					break
+		# print("SET", set_cell)
+		next_cell = conv_idx(cols, row, col+1)
+		grid_cell[next_cell].visited = True
+		if check_set(set_cell, current_cell, next_cell)==False:
+			create_walls(grid_cell[current_cell], grid_cell[next_cell])
+			add_cur, add_nex = False, False
+			for i in set_cell:
+				if current_cell in i:
+					add_cur = True
+				if next_cell in i:
+					add_nex = True
+			if not add_nex:
+				set_cell.append(set([next_cell]))
+			if not add_cur:
+				set_cell.append(set([current_cell]))
+		else:
+			if row != rows-1:
+				if random.randint(0, 1)==1:
+					done = False
+					for i in range(len(set_cell)):
+						if current_cell in set_cell[i]:
+							set_cell[i].add(next_cell)
+							done = True
+							break
+					if not done:
+						set_cell.append(set([current_cell, next_cell]))
+				else:
+					create_walls(grid_cell[current_cell], grid_cell[next_cell])
+					add_cur, add_nex = False, False
+					for i in set_cell:
+						if current_cell in i:
+							add_cur = True
+						if next_cell in i:
+							add_nex = True
+					if not add_nex:
+						set_cell.append(set([next_cell]))
+					if not add_cur:
+						set_cell.append(set([current_cell]))
+			else:
+				for i in range(len(set_cell)):
+					if current_cell in set_cell[i]:
+						if next_cell not in set_cell[i]:
+							set_cell[i].add(next_cell)
+							break
+						else:
+							create_walls(current_cell, next_cell)
+	
+	return grid_cell[current_cell+1], list_merger(set_cell)
 
-		if count == len(grid_cell):
-			return False
+def BinaryTree(current_cell, grid_cell, cols):
+	current_cell.fake_visited = True
+	current_cell.draw_current()
+	if grid_cell.index(current_cell)//cols != 0 and grid_cell.index(current_cell)%cols != 0:
+		if random.randint(0, 1):
+			create_walls(current_cell, grid_cell[grid_cell.index(current_cell)-cols])
+		else:
+			create_walls(current_cell, grid_cell[grid_cell.index(current_cell)-1])
 
-	return current_cell
+	return grid_cell[grid_cell.index(current_cell)+1]
 
 def RanKruskal(grid_cell, set_cell):
 	while True:
