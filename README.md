@@ -6,27 +6,24 @@ The main purpose of this is to get data of maze generator algorithm such as Time
 
 It is really friendly-user and there is also an instruction on.
 
-Some play through: 
-
-- Some simulations:
-
-  - Intruction
-  ![tutorial1](https://github.com/LuongVu307/MazeCraft/assets/132726554/db6a4c49-3bd3-4d74-bf0a-3f1eaaa46330)
+Some simulations: 
 
   - Main menu
-  <img width="600" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/1685941f-ab43-479f-850f-903ea1066f50">
+  <img width="595" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/31f19a71-20a6-4e96-835d-f05ec1e64cb1">
 
   - Generating
   <img width="601" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/6912820e-f2cb-415d-af05-04d4629c70d8">
     
   - Solving
-  <img width="595" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/e2fb8f11-cb95-42bd-bf2c-eec94c0849b3">
+  <img width="594" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/12e75df6-ebb2-4d34-86b6-16c4e0c49aff">
+
 
   - Backtracking
   <img width="597" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/4265d7d2-e8ba-4384-a0db-cfa00d4d6536">
 
   - User playing
-  <img width="596" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/febc224f-35e8-4372-8d98-c688b26ace95">
+  <img width="597" alt="image" src="https://github.com/LuongVu307/MazeCraft/assets/132726554/f0916a0d-e3c1-407a-a2be-d7d60ba9ccc8">
+
 
 
 Any suggestions would be helpful
